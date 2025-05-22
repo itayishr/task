@@ -22,13 +22,13 @@ Built with FastAPI, RabbitMQ, PostgreSQL, and an asynchronous worker.
 ## Architecture
 
 ```
-[User/API Client] <---> [FastAPI API Server] <--> [RabbitMQ] <--> [Async Worker]
-                                              |
-                                              v
-                                       [PostgreSQL Database]
-                                              |
-                                              v
-                                         [pgAdmin UI]
+[User/API Client] <---> [NGINX Reverse Proxy] <---> [FastAPI API Server] <--> [RabbitMQ] <--> [Async Worker]
+                                                          |
+                                                          v
+                                                   [PostgreSQL Database]
+                                                          |
+                                                          v
+                                                     [pgAdmin UI]
 ```
 
 ---
