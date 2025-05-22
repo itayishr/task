@@ -32,3 +32,13 @@ findings = Table(
     Column("line_no", Integer),
     Column("created_at", DateTime, server_default=func.now()),
 )
+
+scan_jobs = Table(
+    "scan_jobs",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("repo_id", Integer, ForeignKey("repos.id")),
+    Column("status", String, default="pending"),
+    Column("created_at", DateTime, server_default=func.now()),
+    Column("finished_at", DateTime, nullable=True),
+)
