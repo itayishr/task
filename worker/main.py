@@ -1,3 +1,5 @@
+import asyncio
+import json
 import logging
 from datetime import datetime
 
@@ -18,11 +20,33 @@ from worker.github_api import (
 )
 from worker.secret_scanner import scan_text_for_secrets
 
+import aio_pika
+
+RABBITMQ_URL = "amqp://guest:guest@rabbitmq/"  # adjust if needed
+
+logging.basicConfig(level=logging.INFO)
+
 
 def mask_secret(secret: str) -> str:
     if len(secret) <= 8:
         return secret
     return f"{secret[:4]}{'*' * (len(secret) - 8)}{secret[-4:]}"
+
+
+async def process_message(message: aio_pika.IncomingMessage):
+    async with message.process():
+        try:
+            data = json.loads(message.body.decode())
+            scan_id = data["scan_id"]
+            repo_url = data["repo_url"]
+            github_pat = data["github_pat"]
+            logging.info(f"Received scan job: scan_id={scan_id} repo_url={repo_url}")
+
+            await run_scan(scan_id, repo_url, github_pat)
+
+        except Exception as e:
+            logging.error(f"Error processing message: {e}")
+            # Message will be acknowledged even on error to avoid re-delivery
 
 
 async def run_scan(scan_id: int, repo_url: str, github_pat: str):
@@ -62,7 +86,6 @@ async def run_scan(scan_id: int, repo_url: str, github_pat: str):
                 findings = scan_text_for_secrets(diff_text)
                 for secret_type, secret_value in findings:
                     masked_value = mask_secret(secret_value)
-                    # Use placeholders for file_path and line_no; can be improved later
                     file_path = "unknown"
                     line_no = 0
                     await create_finding(commit_id, secret_type, masked_value, file_path, line_no)
@@ -77,3 +100,20 @@ async def run_scan(scan_id: int, repo_url: str, github_pat: str):
         await update_scan_job_status(scan_id, "failed")
     finally:
         await database.disconnect()
+
+
+async def main():
+    connection = await aio_pika.connect_robust(RABBITMQ_URL)
+    channel = await connection.channel()
+    queue = await channel.declare_queue("scan_jobs", durable=True)
+
+    logging.info("Worker started, waiting for messages...")
+
+    await queue.consume(process_message)
+
+    # Keep the program running
+    await asyncio.Future()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
