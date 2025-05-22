@@ -1,7 +1,9 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-databases[sqlite]
-aiosqlite
+databases[postgresql]
+asyncpg
 pydantic
 python-dotenv
+pika
+psycopg2-binary

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, status
 from pydantic import BaseModel, HttpUrl
 from db.crud import get_repo_by_url, create_repo, create_scan_job
+from task_queue.publisher import publish_scan_job
 
 router = APIRouter()
 
@@ -25,6 +26,11 @@ async def trigger_scan(scan_req: ScanRequest):
 
     scan_id = await create_scan_job(repo_id)
 
-    # TODO: enqueue or start scanning job here
+    # Publish scan job message to RabbitMQ task_queue
+    publish_scan_job(
+        scan_id=scan_id,
+        repo_url=str(scan_req.repo_url),
+        github_pat=scan_req.github_pat,
+    )
 
     return ScanResponse(message="Scan job accepted", scan_id=scan_id)
