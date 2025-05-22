@@ -90,3 +90,31 @@ async def update_scan_job_status(scan_id: int, status: str):
         .values(status=status)
     )
     await database.execute(query)
+
+
+from sqlalchemy import select, join
+from db.tables import findings, commits, scan_jobs
+
+
+async def get_scan_job_by_id(scan_id: int):
+    query = select(scan_jobs).where(scan_jobs.c.id == scan_id)
+    return await database.fetch_one(query)
+
+
+async def get_findings_by_scan_id(scan_id: int):
+    j = join(findings, commits, findings.c.commit_id == commits.c.id)
+    j = join(j, scan_jobs, commits.c.repo_id == scan_jobs.c.repo_id)
+    query = (
+        select(
+            findings.c.type,
+            findings.c.masked_value,
+            findings.c.file_path,
+            findings.c.line_no,
+            commits.c.sha.label("commit_sha"),
+            commits.c.date.label("commit_date"),
+        )
+        .select_from(j)
+        .where(scan_jobs.c.id == scan_id)
+        .order_by(commits.c.date.desc())
+    )
+    return await database.fetch_all(query)
