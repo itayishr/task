@@ -1,6 +1,4 @@
-
-from fastapi import APIRouter, Depends, HTTPException, status
-from auth.dependencies import verify_token
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -12,8 +10,8 @@ class StatusResponse(BaseModel):
     findings: int
 
 @router.get("/{repo_id}", response_model=StatusResponse)
-async def get_scan_status(repo_id: int, token: str = Depends(verify_token)):
-    # TODO: Replace with DB query to get real status
+async def get_scan_status(repo_id: int):
+    # TODO: Replace with real DB lookup or logic
     dummy_status = StatusResponse(
         repo_id=repo_id,
         status="in_progress",
