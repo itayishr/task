@@ -75,6 +75,8 @@ async def run_scan(scan_id: int, repo_url: str, github_pat: str):
                 if existing is None:
                     commit_id = await create_commit(sha, repo_id, datetime.fromisoformat(commit_date.rstrip("Z")))
                 else:
+                    if existing["scanned"]:
+                        continue  # Skip already scanned commit
                     commit_id = existing["id"]
 
                 try:
