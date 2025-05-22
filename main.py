@@ -7,6 +7,8 @@ app = FastAPI(title="Entro Task - AWS Leak Scanner")
 app.include_router(scan.router, prefix="/scan", tags=["scan"])
 app.include_router(status.router, prefix="/status", tags=["status"])
 
+metadata.create_all(engine)
+
 
 @app.on_event("startup")
 async def startup():
@@ -16,6 +18,3 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown():
     await database.disconnect()
-
-
-metadata.create_all(engine)
